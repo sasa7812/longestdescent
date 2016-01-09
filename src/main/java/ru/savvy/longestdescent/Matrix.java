@@ -9,11 +9,9 @@ import java.util.*;
  */
 public class Matrix {
 
-    private int depth = 0;
-
     private final int width;
     private final int height;
-    List<Integer> matrix = new ArrayList<>();
+    private final List<Integer> matrix;
 
     public static Matrix fromFile(InputStream stream) throws FileNotFoundException {
         Scanner scanner = new Scanner(stream);
@@ -71,10 +69,6 @@ public class Matrix {
         return matrix.get(position);
     }
 
-    public List<Integer> getMatrix() {
-        return Collections.unmodifiableList(matrix);
-    }
-
     /**
      * Condition of route it is from < to
      *
@@ -129,22 +123,29 @@ public class Matrix {
         }
     }
 
-    /**
-     *
-     * @param position
-     * @param initialDescent
-     * @return
-     */
-    public Descent getLongestPath(int position, Descent initialDescent) {
-        Descent longestDescent = initialDescent;
-        Descent descentToFollow = new Descent(initialDescent.getLength()+1,get(position));
-        if (descentToFollow.getLength() > depth){
-            //System.out.println("Depth : " + descentToFollow.getLength() + " reached");
-            depth = descentToFollow.getLength();
+    private Descent searchForLongestDescent(int position, Descent descent){
+        Descent longestDescent = descent;
+        for(Direction direction : Direction.values()){
+            Integer newPosition = go(position,direction);
+            if (newPosition != null){
+                Descent newDescent = searchForLongestDescent(newPosition, descent.stepAhead(get(position)-get(newPosition)));
+                if (longestDescent.lessThan(newDescent)) longestDescent = newDescent;
+            }
         }
-        for (Direction direction : Direction.values()){
-            Descent newDescent = go(position,direction) != null ? getLongestPath(go(position,direction), descentToFollow) : longestDescent;
-            if (longestDescent.lessThan(newDescent)) longestDescent = newDescent;
+        return longestDescent;
+    }
+
+    private Descent getLongestDescentForPoint(int position){
+        return searchForLongestDescent(position, new Descent(0,0));
+    }
+
+    public Descent getLongestDescent(){
+        Descent longestDescent = new Descent(0, 0);
+        for (int i = 0; i < getWidth() * getHeight(); i++) {
+            Descent newDescent = getLongestDescentForPoint(i);
+            if (longestDescent.lessThan(newDescent)) {
+                longestDescent = newDescent;
+            }
         }
         return longestDescent;
     }

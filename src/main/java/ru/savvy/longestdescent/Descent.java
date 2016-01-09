@@ -5,39 +5,35 @@ package ru.savvy.longestdescent;
  */
 public class Descent {
     private  int length;
-    private int lowestPoint;
+    private int depth;
 
     public boolean lessThan(Descent descent) { // yeah I know about Comparable, this one is more elegant
         if (descent.length == this.length) {
-            return descent.lowestPoint < lowestPoint;
+            return descent.depth > depth;
         } else {
             return descent.length > length;
         }
     }
 
-    public Descent(int length, int lowestPoint) {
+    public Descent(int length, int depth) {
         this.length = length;
-        this.lowestPoint = lowestPoint;
+        this.depth = depth;
     }
 
     public int getLength() {
         return length;
     }
 
-    public int getLowestPoint() {
-        return lowestPoint;
+    public int getDepth() {
+        return depth;
     }
 
-    protected void setLength(int length) {
-        this.length = length;
-    }
-
-    protected void setLowestPoint(int lowestPoint) {
-        this.lowestPoint = lowestPoint;
+    public Descent stepAhead(int stepDepth){
+        return new Descent(length+1, depth + stepDepth);
     }
 
     @Override
     public String toString() {
-        return "Descent length: " + length + " lowestPoint: " + lowestPoint;
+        return "Descent length: " + length + " depth : " + depth;
     }
 }

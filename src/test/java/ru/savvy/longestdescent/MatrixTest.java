@@ -45,27 +45,20 @@ public class MatrixTest {
     @Test
     public void testGetLongestPathForFileSample() throws Exception {
         Matrix matrixF = Matrix.fromFile(ClassLoader.getSystemResourceAsStream("map.txt"));
-        Descent longestDescent = new Descent(0, Integer.MAX_VALUE);
-        for (int i = 0; i < matrixF.getWidth() * matrixF.getHeight(); i++) {
-            Descent initialDescent = new Descent(0, Integer.MAX_VALUE);
-            Descent newDescent = matrixF.getLongestPath(i, initialDescent);
-            if (longestDescent.lessThan(newDescent)) {
-                longestDescent = newDescent;
-                System.out.println("Matrix point: " + i + " value = " + matrixF.get(i) + " == " + newDescent);
-            }
-        }
-        System.out.println(" Longest path: " + longestDescent);
+        Descent longestDescent = matrixF.getLongestDescent();
+        System.out.println(longestDescent);
+        assertEquals(1422, longestDescent.getDepth());
+        // actual length is 15 by definition of the task
+        assertEquals(14,longestDescent.getLength());
     }
 
     @Test
     public void testGetLongestPathSnake() throws Exception {
         // even 10x10 snake-filled matrix takes significant time to complete
-        Matrix matrixS = Matrix.snakeFill(10, 10);
-        Descent initialDescent = new Descent(0, Integer.MAX_VALUE);
-        // actual length is 100 by task definition as starting point also counted
-        // we starting here from the highest point as it apparently has longest descent
-        Descent descent = matrixS.getLongestPath(90, initialDescent);
-        assertEquals(99, descent.getLength());
+        Matrix matrixS = Matrix.snakeFill(8, 8);
+        Descent descent = matrixS.getLongestDescent();
         System.out.println(descent);
+        assertEquals(63, descent.getLength());
+        assertEquals(63, descent.getDepth());
     }
 }
