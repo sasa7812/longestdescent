@@ -9,19 +9,18 @@ import java.util.*;
  */
 public class Matrix {
 
-    private int depth = 0;
-
     private final int width;
     private final int height;
-    List<Integer> matrix = new ArrayList<>();
+    private final List<Descent> matrix;
 
     public static Matrix fromFile(InputStream stream) throws FileNotFoundException {
         Scanner scanner = new Scanner(stream);
         int width = scanner.nextInt();
         int height = scanner.nextInt();
-        List<Integer> matrix = new ArrayList<>(width * height);
+        List<Descent> matrix = new ArrayList<>(width * height);
         for (int i = 0; i < width * height; i++) {
-            matrix.add(scanner.nextInt());
+            int h = scanner.nextInt();
+            matrix.add(new Descent(h));
         }
         return new Matrix(width, height, matrix);
     }
@@ -40,20 +39,23 @@ public class Matrix {
      * @return
      */
     public static Matrix snakeFill(int width, int height){
-        List<Integer> matrix = new ArrayList<>(width*height);
+        List<Descent> matrix = new ArrayList<>(width*height);
         for (int i = 0; i < width * height; i++){
             int row = i / width;
+            int h;
             if (row % 2 == 1) {
-                matrix.add((row+1)*width - (i % width) - 1);
+                h = (row+1)*width - (i % width) - 1;
             }
             else {
-                matrix.add(i);
+                h = i;
             }
+            matrix.add(new Descent(h));
+
         }
         return new Matrix(width,height,matrix);
     }
 
-    private Matrix(int width, int height, List<Integer> matrix) {
+    private Matrix(int width, int height, List<Descent> matrix) {
         this.width = width;
         this.height = height;
         this.matrix = matrix; // no defensive copy, we have private constructor
@@ -67,23 +69,8 @@ public class Matrix {
         return height;
     }
 
-    public int get(int position) {
+    public Descent get(int position) {
         return matrix.get(position);
-    }
-
-    public List<Integer> getMatrix() {
-        return Collections.unmodifiableList(matrix);
-    }
-
-    /**
-     * Condition of route it is from < to
-     *
-     * @param from position to go from
-     * @param to   position to go to
-     * @return
-     */
-    private boolean canGoThere(int from, int to) {
-        return get(from) > get(to);
     }
 
     /**
@@ -92,7 +79,7 @@ public class Matrix {
      * otherwise {@code null}
      */
     public Integer goNorth(int position) {
-        return (((position / width) > 0) && canGoThere(position, position - width)) ? position - width : null;
+        return ((position / width) > 0) ? position - width : null;
     }
 
     /**
@@ -100,7 +87,7 @@ public class Matrix {
      * @return goes East, see {@link Matrix#goNorth(int)}
      */
     public Integer goEast(int position) {
-        return (((position % width) != (width - 1)) && canGoThere(position, position + 1)) ? position + 1 : null;
+        return ((position % width) != (width - 1)) ? position + 1 : null;
     }
 
     /**
@@ -108,7 +95,7 @@ public class Matrix {
      * @return goes South, see {@link Matrix#goNorth(int)}
      */
     public Integer goSouth(int position) {
-        return (((position / width) < (height-1)) && canGoThere(position, position + width)) ? position + width : null;
+        return ((position / width) < (height-1))  ? position + width : null;
     }
 
     /**
@@ -116,7 +103,7 @@ public class Matrix {
      * @return goes West, see {@link Matrix#goNorth(int)}
      */
     public Integer goWest(int position) {
-        return (((position % width) != 0) && canGoThere(position, position - 1)) ? position - 1 : null;
+        return ((position % width) != 0)  ? position - 1 : null;
     }
 
     public Integer go(int position, Direction direction){
@@ -130,23 +117,60 @@ public class Matrix {
     }
 
     /**
-     *
-     * @param position
-     * @param initialDescent
-     * @return
+     * Builds matrix's height indexes
+     * @return Map where key is height and value is list of positions of this height
      */
-    public Descent getLongestPath(int position, Descent initialDescent) {
-        Descent longestDescent = initialDescent;
-        Descent descentToFollow = new Descent(initialDescent.getLength()+1,get(position));
-        if (descentToFollow.getLength() > depth){
-            //System.out.println("Depth : " + descentToFollow.getLength() + " reached");
-            depth = descentToFollow.getLength();
+    public SortedMap<Integer, List<Integer>> getHeightsIndex(){
+        SortedMap<Integer, List<Integer>> result = new TreeMap<>();
+        for(int i=0; i<getHeight()*getWidth(); i++){
+            int height = matrix.get(i).getHeight();
+            if (result.get(height) == null){
+                result.put(height, new ArrayList<>());
+            }
+            result.get(height).add(i);
         }
+        return result;
+    }
+
+    private List<Descent> getAllNeighbours(int position){
+        List<Descent> descents = new ArrayList<>();
         for (Direction direction : Direction.values()){
-            Descent newDescent = go(position,direction) != null ? getLongestPath(go(position,direction), descentToFollow) : longestDescent;
-            if (longestDescent.lessThan(newDescent)) longestDescent = newDescent;
+            Integer neighbour = go(position,direction);
+            if (neighbour != null){
+                descents.add(matrix.get(neighbour));
+            }
+        }
+        return descents;
+    }
+
+    private Descent findOutGreatestDescent(){
+        Descent longestDescent = matrix.get(0);
+        for(Descent descent : matrix){
+            if (!descent.isCalculated()) throw new IllegalStateException("Not all descents were calculated!");
+            if (descent.greaterThan(longestDescent)){
+                longestDescent = descent;
+            }
         }
         return longestDescent;
+    }
+
+    /**
+     * @return longest and deepest path in matrix
+     */
+    public Descent getLongestPathIndexed(){
+        // Algorithm:
+        // - calculate matrix's height indexes as SortedMap where key is height and value is the list of positions, see this#getHeightsIndex()
+        // - going through points in ascending by height order we calculate the longest/deepest descent relatively to
+        // the closest neighbours, see Descent#join
+        // - looping through the matrix again we find the longest/deepest descent, see this#findOutGreatestDescent()
+        //
+        Map<Integer, List<Integer>> index = getHeightsIndex();
+        for(List<Integer> positions : index.values()){
+            for(int position : positions){
+                matrix.get(position).join(getAllNeighbours(position));
+            }
+        }
+        return findOutGreatestDescent();
     }
 
 }
