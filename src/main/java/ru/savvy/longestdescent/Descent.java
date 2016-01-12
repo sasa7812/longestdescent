@@ -13,14 +13,23 @@ public class Descent {
     private int height; // height of current matrix point
     private boolean calculated; // just to be sure all calculations are done properly
 
+
+    private boolean greaterThanByLowest(Descent descent) { // yeah I know about Comparable, this one is more elegant
+        if (descent.length == this.length) {
+            return descent.lowestPoint > lowestPoint;
+        } else {
+            return descent.length < length;
+        }
+    }
+
+
     /**
-     *
      * @param descent given
      * @return true if given descent less than {@code this}
      */
-    public boolean greaterThan(Descent descent) { // yeah I know about Comparable, this one is more elegant
-        if (descent.length == this.length) {
-            return descent.lowestPoint > lowestPoint;
+    public boolean greaterThan(Descent descent){
+        if (descent.length == this.length){
+            return descent.getDepth() < getDepth();
         } else {
             return descent.length < length;
         }
@@ -51,7 +60,7 @@ public class Descent {
                     throw new IllegalStateException("Matrix should be traversed in ascending order. From lowest heights to highest");
                 }
                 else{
-                    if (descentToJoinWith == null || d.greaterThan(descentToJoinWith)) {
+                    if (descentToJoinWith == null || d.greaterThanByLowest(descentToJoinWith)) {
                         descentToJoinWith = d;
                     }
                 }
